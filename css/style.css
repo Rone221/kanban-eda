@@ -225,6 +225,18 @@ h1, h2, h3 { font-family: var(--font-display); color: var(--text-primary); }
 .btn-icon-sm:hover { background: var(--bg-hover); color: var(--text-primary); opacity: 1 !important; }
 .btn-delete-column:hover { color: var(--priority-high); background: rgba(239,68,68,0.08); }
 
+.btn-icon:disabled { opacity: 0.3; cursor: not-allowed; }
+.btn-icon:disabled:hover { background: transparent; color: var(--text-muted); }
+
+/* Groupe Undo / Redo */
+.history-group {
+  display: flex;
+  gap: 2px;
+  padding-right: 8px;
+  margin-right: 2px;
+  border-right: 1px solid var(--border);
+}
+
 /* ──────────────────────────────────────────────
    FILTER BAR
 ────────────────────────────────────────────── */

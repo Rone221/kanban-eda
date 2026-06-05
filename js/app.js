@@ -4,6 +4,8 @@ const App = (() => {
   /* Boutons header*/
   const $btnAddColumn = document.getElementById('btn-add-column');
   const $btnReset     = document.getElementById('btn-reset');
+  const $btnUndo      = document.getElementById('btn-undo');
+  const $btnRedo      = document.getElementById('btn-redo');
 
   /*INIT*/
   function init() {
@@ -15,6 +17,7 @@ const App = (() => {
     Modal.init();
     Filters.init();
     Notifications.init();
+    History.init();           // historique Undo/Redo (pattern Commande)
 
     /* 3. Abonnements EventBus : UI → State */
     _bindUIEvents();
@@ -24,6 +27,9 @@ const App = (() => {
 
     /* 5. Listeners boutons header */
     _bindHeaderButtons();
+
+    /* 6. Undo / Redo (boutons + raccourcis clavier) */
+    _bindHistory();
 
     console.info('%c[FlowBoard] Application démarrée.', 'color: #4f8ef7; font-weight: 600');
     EventBus.debug();
@@ -114,6 +120,43 @@ const App = (() => {
         'Réinitialiser le board avec les données de démo ?',
         () => State.resetToDefault()
       );
+    });
+  }
+
+  /* ════════════════ UNDO / REDO ════════════════ */
+  function _bindHistory() {
+
+    /* Boutons */
+    $btnUndo.addEventListener('click', () => History.undo());
+    $btnRedo.addEventListener('click', () => History.redo());
+
+    /* Activation / désactivation selon l'état des piles */
+    EventBus.on('history:changed', ({ canUndo, canRedo }) => {
+      $btnUndo.disabled = !canUndo;
+      $btnRedo.disabled = !canRedo;
+    });
+
+    /* Après un undo/redo : ré-affichage complet du board depuis le State
+       (source unique de vérité) — garantit un DOM exact quelle que soit
+       la complexité de l'action annulée (déplacement, suppression…). */
+    EventBus.on('history:applied', (state) => {
+      Filters.reset();
+      DOM.renderBoard(state);
+    });
+
+    /* Raccourcis clavier : Ctrl/Cmd+Z = annuler, Ctrl+Y / Ctrl+Shift+Z = rétablir */
+    document.addEventListener('keydown', (e) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+
+      /* Ne pas intercepter pendant une saisie (champ, textarea, titre éditable, modale) */
+      const $t = e.target;
+      const typing = $t.matches?.('input, textarea, select, [contenteditable="true"]');
+      const modalOpen = !document.getElementById('modal-overlay').classList.contains('hidden');
+      if (typing || modalOpen) return;
+
+      const key = e.key.toLowerCase();
+      if (key === 'z' && !e.shiftKey) { e.preventDefault(); History.undo(); }
+      else if (key === 'y' || (key === 'z' && e.shiftKey)) { e.preventDefault(); History.redo(); }
     });
   }
 

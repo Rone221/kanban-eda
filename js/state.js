@@ -243,6 +243,17 @@ const State = (() => {
     EventBus.emit('state:changed', _state);
   }
 
+  /**
+   * Remplace l'intégralité de l'état par un instantané (Memento).
+   * Utilisé exclusivement par le module History (Undo/Redo).
+   * N'émet QUE 'state:changed' : pas d'événement sémantique ni de toast.
+   */
+  function applySnapshot(snapshot) {
+    _state = JSON.parse(JSON.stringify(snapshot));
+    _save();
+    EventBus.emit('state:changed', _state);
+  }
+
   /** Statistiques globales */
   function getStats() {
     let total = 0;
@@ -269,6 +280,7 @@ const State = (() => {
     deleteTask,
     moveTask,
     resetToDefault,
+    applySnapshot,
   };
 
 })();
