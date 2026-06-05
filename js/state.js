@@ -12,11 +12,11 @@ const State = (() => {
 
   const STORAGE_KEY = 'flowboard_v1';
 
-  /* ─── Couleurs cycliques des colonnes ─── */
+  /* ─── Couleurs cycliques des colonnes (palette claire, lisible sur blanc) ─── */
   const COLUMN_COLORS = [
-    '#4f8ef7', '#a64ff7', '#f74f8e',
-    '#4ff7c1', '#f7a14f', '#f7f74f',
-    '#4ff74f', '#f74f4f', '#4ff7f7',
+    '#f05537', '#7c3aed', '#2563eb',
+    '#0ea5e9', '#10b981', '#f59e0b',
+    '#ec4899', '#6366f1', '#14b8a6',
   ];
 
   /* ─── État initial par défaut ─── */
