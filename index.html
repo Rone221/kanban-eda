@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FlowBoard — Kanban EDA</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════
+       TEMPLATES HTML5 — clonés dynamiquement par JS -->
+
+  <!-- Template: Colonne Kanban -->
+  <template id="tpl-column">
+    <div class="column" draggable="false">
+      <div class="column-header">
+        <div class="column-title-wrap">
+          <span class="column-dot"></span>
+          <h2 class="column-title" contenteditable="true" spellcheck="false"></h2>
+          <span class="column-badge">0</span>
+        </div>
+        <div class="column-actions">
+          <button class="btn-icon btn-add-task" data-action="add-task" title="Ajouter une tâche">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <button class="btn-icon btn-delete-column" data-action="delete-column" title="Supprimer la colonne">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+          </button>
+        </div>
+      </div>
+      <ul class="task-list" data-drop-zone="true"></ul>
+      <button class="btn-add-task-inline" data-action="add-task">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Ajouter une tâche
+      </button>
+    </div>
+  </template>
+
+  <!-- Template: Carte Tâche -->
+  <template id="tpl-task">
+    <li class="task-card" draggable="true" tabindex="0">
+      <div class="task-card-inner">
+        <div class="task-top">
+          <span class="task-priority-dot"></span>
+          <p class="task-title"></p>
+        </div>
+        <p class="task-desc"></p>
+        <div class="task-footer">
+          <span class="task-tag"></span>
+          <div class="task-card-actions">
+            <button class="btn-icon-sm" data-action="edit-task" title="Éditer">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+            <button class="btn-icon-sm" data-action="delete-task" title="Supprimer">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </li>
+  </template>
+
+  <!-- Template: Notification toast -->
+  <template id="tpl-toast">
+    <div class="toast">
+      <span class="toast-icon"></span>
+      <span class="toast-msg"></span>
+    </div>
+  </template>
+
+  <!-- ═══════════════════════════════════════════════
+       APP SHELL
+  ═══════════════════════════════════════════════ -->
+  <div id="app">
+
+    <!-- HEADER -->
+    <header id="app-header">
+      <div class="header-left">
+        <div class="logo">
+          <svg class="logo-icon" viewBox="0 0 32 32" fill="none">
+            <rect x="2" y="2" width="12" height="18" rx="3" fill="var(--accent)"/>
+            <rect x="18" y="2" width="12" height="10" rx="3" fill="var(--accent-muted)"/>
+            <rect x="18" y="16" width="12" height="14" rx="3" fill="var(--accent)"/>
+          </svg>
+          <span class="logo-text">FlowBoard</span>
+        </div>
+        <div class="header-stats" id="header-stats">
+          <span class="stat-chip" id="stat-total">0 tâches</span>
+          <span class="stat-chip stat-done" id="stat-done">0 terminées</span>
+        </div>
+      </div>
+      <div class="header-center">
+        <div class="search-wrap">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="search-input" placeholder="Rechercher une tâche…" autocomplete="off" />
+          <button id="search-clear" class="search-clear" title="Effacer" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="header-right">
+        <button id="btn-add-column" class="btn-primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Ajouter une colonne
+        </button>
+        <button id="btn-reset" class="btn-ghost" title="Réinitialiser le board">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- FILTER BAR -->
+    <div id="filter-bar">
+      <span class="filter-label">Filtrer :</span>
+      <div class="filter-group" id="priority-filters">
+        <button class="filter-btn active" data-filter-priority="all">Tout</button>
+        <button class="filter-btn filter-high" data-filter-priority="high">🔴 Haute</button>
+        <button class="filter-btn filter-medium" data-filter-priority="medium">🟡 Moyenne</button>
+        <button class="filter-btn filter-low" data-filter-priority="low">🟢 Basse</button>
+      </div>
+    </div>
+
+    <!-- BOARD (colonnes injectées ici) -->
+    <main id="board"></main>
+
+    <!-- MODAL Task Form -->
+    <div id="modal-overlay" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="modal">
+        <div class="modal-header">
+          <h3 id="modal-title">Nouvelle tâche</h3>
+          <button class="btn-icon" id="modal-close" aria-label="Fermer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="task-title-input">Titre <span class="required">*</span></label>
+            <input type="text" id="task-title-input" placeholder="Ex: Implémenter le module auth…" maxlength="80" />
+            <span class="char-count" id="title-count">0/80</span>
+          </div>
+          <div class="form-group">
+            <label for="task-desc-input">Description</label>
+            <textarea id="task-desc-input" rows="3" placeholder="Détails optionnels…" maxlength="200"></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="task-priority-input">Priorité</label>
+              <select id="task-priority-input">
+                <option value="low">🟢 Basse</option>
+                <option value="medium" selected>🟡 Moyenne</option>
+                <option value="high">🔴 Haute</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="task-tag-input">Étiquette</label>
+              <input type="text" id="task-tag-input" placeholder="Ex: Frontend, Bug…" maxlength="20" />
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-ghost" id="modal-cancel">Annuler</button>
+          <button class="btn-primary" id="modal-save">Enregistrer</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOAST CONTAINER -->
+    <div id="toast-container" aria-live="polite"></div>
+
+  </div><!-- /#app -->
+
+  <!-- Scripts modulaires EDA -->
+  <script src="js/eventBus.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/dom.js"></script>
+  <script src="js/dragDrop.js"></script>
+  <script src="js/modal.js"></script>
+  <script src="js/filters.js"></script>
+  <script src="js/notifications.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
